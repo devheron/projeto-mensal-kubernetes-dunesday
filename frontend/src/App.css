@@ -1,0 +1,692 @@
+/* ============================================================
+   DUNESDAY
+   Arrakis ocupa a esquerda, Latveria ocupa a direita, e as duas
+   metades se encontram numa costura difusa no meio da tela.
+   Cada variavel abaixo troca junto com data-faction, e a
+   transicao longa produz a virada entre os dois mundos.
+   ============================================================ */
+
+@property --accent {
+  syntax: '<color>'; inherits: true; initial-value: #e8a854;
+}
+@property --accent-soft {
+  syntax: '<color>'; inherits: true; initial-value: #4db8e8;
+}
+@property --ink {
+  syntax: '<color>'; inherits: true; initial-value: #f5e6d0;
+}
+@property --panel {
+  syntax: '<color>'; inherits: true; initial-value: rgba(28, 16, 7, 0.55);
+}
+@property --edge {
+  syntax: '<color>'; inherits: true; initial-value: rgba(232, 168, 84, 0.28);
+}
+
+.realm {
+  --accent: #e8a854;
+  --accent-soft: #4db8e8;
+  --ink: #f5e6d0;
+  --muted: rgba(245, 230, 208, 0.58);
+  --panel: rgba(26, 14, 6, 0.66);
+  --edge: rgba(232, 168, 84, 0.28);
+  --sky-top: #130a04;
+  --sky-mid: #4a2410;
+  --sky-low: #b9701f;
+  --dune-opacity: 1;
+  --citadel-opacity: 0;
+
+  transition:
+    --accent 2.6s ease-in-out,
+    --accent-soft 2.6s ease-in-out,
+    --ink 2.6s ease-in-out,
+    --panel 2.6s ease-in-out,
+    --edge 2.6s ease-in-out;
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-bottom: 48px;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--ink);
+  font-family: 'Barlow', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0a0603;
+}
+
+.realm[data-faction='latveria'] {
+  --accent: #7ec46c;
+  --accent-soft: #9fb3a6;
+  --ink: #e6f2e6;
+  --muted: rgba(230, 242, 230, 0.56);
+  --panel: rgba(6, 20, 12, 0.7);
+  --edge: rgba(126, 196, 108, 0.3);
+  --sky-top: #030905;
+  --sky-mid: #0e2a18;
+  --sky-low: #2f6b3a;
+  --dune-opacity: 0;
+  --citadel-opacity: 1;
+}
+
+/* ------------------------------------------------------------
+   Camadas de fundo
+   ------------------------------------------------------------ */
+
+.realm__sky,
+.realm__terrain,
+.realm__structure,
+.realm__haze,
+.realm__grain,
+.realm__vignette,
+.realm__shift,
+.campaign,
+.campaign__seam,
+.battlefield {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Varredura da troca de mundo: uma frente de luz cruza a tela e leva
+   a paleta antiga embora. Remonta a cada mudanca de faccao pela key do React */
+.realm__shift {
+  z-index: -4;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 26%, transparent) 42%,
+    color-mix(in srgb, var(--accent-soft) 62%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 26%, transparent) 58%,
+    transparent 100%
+  );
+  filter: blur(34px);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: worldShift 2.8s cubic-bezier(0.35, 0, 0.2, 1) 1;
+}
+
+@keyframes worldShift {
+  0%   { opacity: 0;    transform: translateX(-120%) skewX(-8deg); }
+  22%  { opacity: 0.85; }
+  78%  { opacity: 0.6; }
+  100% { opacity: 0;    transform: translateX(120%) skewX(-8deg); }
+}
+
+.realm__sky {
+  z-index: -8;
+  background:
+    radial-gradient(ellipse 120% 70% at 50% 108%, var(--sky-low) 0%, transparent 62%),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 58%, var(--sky-top) 100%);
+  transition: background 2.6s ease-in-out;
+}
+
+/* Sol de Arrakis e lua de Latveria ocupam o mesmo ponto e trocam de cor */
+.realm__sky::after {
+  content: '';
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  width: min(42vw, 420px);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 68%);
+  opacity: 0.18;
+  filter: blur(40px);
+  animation: breathe 11s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------
+   Arte de campanha
+   As duas metades se sobrepoem no centro e as mascaras diagonais
+   dissolvem uma na outra, para nao existir corte reto entre elas.
+   ------------------------------------------------------------ */
+
+.campaign {
+  z-index: -7;
+  opacity: 0;
+  transition: opacity 6s ease-in-out;
+}
+
+.campaign--live {
+  opacity: 0.24;
+}
+
+.campaign__half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 58%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: saturate(0.82) contrast(1.06) blur(1.5px);
+}
+
+.campaign__half--left {
+  left: 0;
+  background-position: center left;
+  -webkit-mask-image: linear-gradient(95deg, #000 0%, #000 52%, transparent 100%);
+  mask-image: linear-gradient(95deg, #000 0%, #000 52%, transparent 100%);
+}
+
+.campaign__half--right {
+  right: 0;
+  background-position: center right;
+  -webkit-mask-image: linear-gradient(95deg, transparent 0%, #000 48%, #000 100%);
+  mask-image: linear-gradient(95deg, transparent 0%, #000 48%, #000 100%);
+}
+
+/* Costura: a faixa onde a areia encosta no verde e as duas cores se fundem */
+.campaign__seam {
+  z-index: -6;
+  background: linear-gradient(
+    95deg,
+    transparent 43%,
+    rgba(232, 168, 84, 0.3) 47.5%,
+    rgba(255, 246, 226, 0.4) 50%,
+    rgba(126, 196, 108, 0.3) 52.5%,
+    transparent 57%
+  );
+  filter: blur(18px);
+  opacity: 0.34;
+  mix-blend-mode: screen;
+  /* Confina o brilho a faixa central para nao sujar o topo e o rodape */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 24%, #000 76%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 24%, #000 76%, transparent 100%);
+  animation: seamPulse 7s ease-in-out infinite;
+}
+
+/* Dunas de Arrakis */
+.realm__terrain {
+  z-index: -5;
+  opacity: var(--dune-opacity);
+  transition: opacity 2.6s ease-in-out;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: 100% clamp(200px, 36vh, 360px);
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201440%20420%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M-40%20252C79%20243%20172%20190%20225%20190L294%20235C420%20243%20518%20213%20574%20213L625%20269C751%20243%20850%20195%20906%20195L986%20245C1075%20243%201144%20219%201183%20219L1251%20259C1335%20243%201400%20220%201437%20220L1511%20276L1480%20420L-40%20420Z%22%20fill%3D%22%236b3c17%22%2F%3E%3Cpath%20d%3D%22M1295%20300L1312%20275L1342%20282L1373%20300ZM1355%20300L1380%20286L1423%20290L1468%20300ZM973%20300L990%20266L1019%20276L1050%20300ZM126%20300L141%20283L166%20288L192%20300ZM781%20300L804%20279L845%20285L887%20300ZM799%20300L824%20283L868%20288L914%20300ZM1195%20300L1212%20286L1241%20290L1272%20300Z%22%20fill%3D%22%23542f11%22%2F%3E%3Cpath%20d%3D%22M-40%20306C82%20298%20178%20260%20232%20260L289%20296C379%20298%20449%20280%20489%20280L533%20315C663%20298%20763%20272%20821%20272L877%20310C991%20298%201079%20277%201130%20277L1185%20311C1309%20298%201405%20256%201460%20256L1504%20306L1480%20420L-40%20420Z%22%20fill%3D%22%234a2510%22%2F%3E%3Cpath%20d%3D%22M-40%20352C32%20346%2087%20325%20119%20325L203%20350C324%20346%20417%20323%20471%20323L553%20347C673%20346%20766%20315%20819%20315L890%20336C1016%20346%201115%20321%201171%20321L1247%20353C1378%20346%201479%20310%201537%20310L1604%20343L1480%20420L-40%20420Z%22%20fill%3D%22%232e160a%22%2F%3E%3Cpath%20d%3D%22M-40%20394C84%20390%20181%20378%20236%20378L311%20394C415%20390%20497%20374%20543%20374L603%20398C674%20390%20729%20368%20760%20368L822%20386C897%20390%20955%20371%20988%20371L1057%20389C1143%20390%201211%20373%201249%20373L1329%20386C1454%20390%201551%20381%201607%20381L1687%20396L1480%20420L-40%20420Z%22%20fill%3D%22%23190b05%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* Cidadela de Latveria */
+.realm__structure {
+  z-index: -5;
+  opacity: var(--citadel-opacity);
+  transition: opacity 2.6s ease-in-out;
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: 100% clamp(200px, 36vh, 360px);
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201440%20420%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M-24%20420V375L6%20340L37%20375V420ZM42%20420V360L65%20314L88%20360V420ZM93%20420V373L118%20321L142%20373V420ZM147%20420V366L171%20329L195%20366V420ZM199%20420V376L224%20334L249%20376V420ZM256%20420V381L281%20338L306%20381V420ZM311%20420V378L340%20338L370%20378V420ZM372%20420V353L394%20302L415%20353V420ZM419%20420V378L452%20321L486%20378V420ZM493%20420V381L514%20334L536%20381V420ZM537%20420V355L566%20298L595%20355V420ZM602%20420V354L636%20308L669%20354V420ZM675%20420V350L700%20298L724%20350V420ZM731%20420V356L754%20302L776%20356V420ZM778%20420V376L810%20325L842%20376V420ZM849%20420V370L872%20324L895%20370V420ZM897%20420V351L919%20297L941%20351V420ZM942%20420V353L970%20297L999%20353V420ZM1000%20420V352L1035%20304L1070%20352V420ZM1075%20420V352L1096%20302L1118%20352V420ZM1125%20420V359L1153%20310L1181%20359V420ZM1185%20420V371L1219%20320L1253%20371V420ZM1254%20420V381L1278%20345L1301%20381V420ZM1305%20420V375L1331%20327L1357%20375V420ZM1363%20420V366L1394%20312L1425%20366V420ZM1427%20420V354L1454%20311L1482%20354V420Z%22%20fill%3D%22%231b3a26%22%2F%3E%3Cpath%20d%3D%22M566%20420V238L590%20180L614%20238V420ZM566%20238v-11h7v11ZM578%20238v-11h7v11ZM590%20238v-11h7v11ZM602%20238v-11h7v11ZM648%20420V176L694%2084L740%20176V420ZM648%20176v-11h8v11ZM663%20176v-11h8v11ZM679%20176v-11h8v11ZM694%20176v-11h8v11ZM709%20176v-11h8v11ZM725%20176v-11h8v11ZM772%20420V250L796%20196L820%20250V420ZM772%20250v-11h7v11ZM784%20250v-11h7v11ZM796%20250v-11h7v11ZM808%20250v-11h7v11ZM614%20420V308H792V420ZM632%20308v-16h20v16ZM672%20308v-16h20v16ZM712%20308v-16h20v16ZM752%20308v-16h20v16Z%22%20fill%3D%22%23102418%22%2F%3E%3Cpath%20d%3D%22M-24%20420V338L10%20284L44%20338V420ZM53%20420V353L83%20311L113%20353V420ZM122%20420V337L164%20294L206%20337V420ZM212%20420V365L255%20304L298%20365V420ZM305%20420V361L342%20319L380%20361V420ZM387%20420V257L400%20206L413%20257V420ZM421%20420V325L452%20272L483%20325V420ZM498%20420V279L512%20233L526%20279V420ZM540%20420V353L580%20305L620%20353V420ZM629%20420V349L660%20309L690%20349V420ZM705%20420V348L736%20302L767%20348V420ZM780%20420V346L825%20302L870%20346V420ZM887%20420V347L924%20290L961%20347V420ZM976%20420V325L1022%20276L1067%20325V420ZM1080%20420V352L1124%20311L1168%20352V420ZM1175%20420V304L1186%20244L1198%20304V420ZM1214%20420V346L1255%20285L1296%20346V420ZM1306%20420V345L1349%20279L1392%20345V420ZM1408%20420V259L1424%20189L1440%20259V420ZM1454%20420V305L1468%20241L1481%20305V420Z%22%20fill%3D%22%230a1810%22%2F%3E%3Cpath%20d%3D%22M0%20420V356H1440V420ZM6%20356v-17h26v17ZM54%20356v-17h26v17ZM102%20356v-17h26v17ZM150%20356v-17h26v17ZM198%20356v-17h26v17ZM246%20356v-17h26v17ZM294%20356v-17h26v17ZM342%20356v-17h26v17ZM390%20356v-17h26v17ZM438%20356v-17h26v17ZM486%20356v-17h26v17ZM534%20356v-17h26v17ZM582%20356v-17h26v17ZM630%20356v-17h26v17ZM678%20356v-17h26v17ZM726%20356v-17h26v17ZM774%20356v-17h26v17ZM822%20356v-17h26v17ZM870%20356v-17h26v17ZM918%20356v-17h26v17ZM966%20356v-17h26v17ZM1014%20356v-17h26v17ZM1062%20356v-17h26v17ZM1110%20356v-17h26v17ZM1158%20356v-17h26v17ZM1206%20356v-17h26v17ZM1254%20356v-17h26v17ZM1302%20356v-17h26v17ZM1350%20356v-17h26v17ZM1398%20356v-17h26v17Z%22%20fill%3D%22%23040c07%22%2F%3E%3C%2Fsvg%3E");
+}
+
+.battlefield {
+  z-index: -4;
+  width: 100%;
+  height: 100%;
+}
+
+/* Nevoa que atravessa a tela de um lado ao outro */
+.realm__haze {
+  z-index: -3;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 70%, color-mix(in srgb, var(--accent) 20%, transparent) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 45% at 80% 80%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 72%);
+  filter: blur(28px);
+  animation: drift 26s ease-in-out infinite alternate;
+  transition: background 2.6s ease-in-out;
+}
+
+/* Granulacao de filme, tira o aspecto liso demais */
+.realm__grain {
+  z-index: -2;
+  opacity: 0.15;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: flicker 0.9s steps(3) infinite;
+}
+
+/* Escurece as bordas e empurra a arte para tras do conteudo */
+.realm__vignette {
+  z-index: -1;
+  background: radial-gradient(ellipse 85% 75% at 50% 45%, rgba(0, 0, 0, 0.3) 30%, rgba(0, 0, 0, 0.86) 100%);
+}
+
+/* ------------------------------------------------------------
+   Cabecalho
+   ------------------------------------------------------------ */
+
+.banner {
+  width: min(880px, 92vw);
+  margin-top: clamp(20px, 5vh, 46px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.banner__mark {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Brasao unindo a asa de Atreides com o chifre de Latveria */
+.sigil {
+  display: block;
+  width: 56px;
+  height: auto;
+  flex-shrink: 0;
+  animation: breathe 6s ease-in-out infinite;
+}
+
+.mark {
+  display: block;
+  width: clamp(200px, 30vw, 300px);
+  height: auto;
+}
+
+.banner__sub {
+  margin: 2px 0 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: slideIn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.banner__right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.faction {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.faction__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 14px var(--accent);
+  transition: background 2.6s ease-in-out, box-shadow 2.6s ease-in-out;
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.faction__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.faction__text strong {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+  transition: color 2.6s ease-in-out;
+}
+
+.faction__text em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* Botao de som: discreto, so o icone, nao disputa atencao com o conteudo */
+.horn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--edge);
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.horn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.horn:hover {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.horn--live {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------
+   Painel principal
+   ------------------------------------------------------------ */
+
+.console {
+  width: min(880px, 92vw);
+  margin: clamp(18px, 4vh, 34px) 0 0;
+  padding: clamp(20px, 3vw, 32px);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.66);
+  transition: background 2.6s ease-in-out, border-color 2.6s ease-in-out;
+  animation: riseIn 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.console__meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--edge);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  transition: border-color 2.6s ease-in-out;
+}
+
+.pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+}
+
+.pulse::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.pulse--online { color: var(--accent); }
+.pulse--offline { color: #e05a4a; }
+.pulse--conectando { color: var(--muted); }
+
+/* Contadores: so o simbolo e o numero, sem rotulo escrito */
+.tally {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  cursor: default;
+  transition: color 2.6s ease-in-out;
+}
+
+.tally:first-of-type { margin-left: auto; }
+
+.tally__icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--accent);
+  transition: color 2.6s ease-in-out;
+}
+
+/* Campo de entrada */
+.decree {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.decree input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid var(--edge);
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s, color 2.6s ease-in-out;
+}
+
+.decree input::placeholder {
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.decree input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 26px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.decree__submit {
+  min-width: 128px;
+  padding: 14px 24px;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #0a0603;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  transition: background 2.6s ease-in-out, transform 0.18s, filter 0.25s;
+}
+
+.decree__submit:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.decree__submit:active { transform: translateY(0); }
+
+/* Lista de ordens */
+.orders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orders__empty {
+  padding: 30px 10px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.order {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid transparent;
+  border-left: 2px solid var(--accent);
+  transition: background 0.3s, border-color 0.3s, transform 0.25s;
+  animation: slideIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.order:hover {
+  background: rgba(0, 0, 0, 0.46);
+  border-color: var(--edge);
+  border-left-color: var(--accent);
+  transform: translateX(3px);
+}
+
+.order--done {
+  opacity: 0.42;
+  border-left-color: var(--muted);
+}
+
+.order--done .order__text {
+  text-decoration: line-through;
+}
+
+/* Marcador de conclusao */
+.order__check {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--edge);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: border-color 0.3s;
+}
+
+.order__check:hover { border-color: var(--accent); }
+
+.order__check span {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  transform: scale(0) rotate(45deg);
+  transition: transform 0.3s cubic-bezier(0.2, 1.4, 0.4, 1), background 2.6s ease-in-out;
+}
+
+.order--done .order__check span { transform: scale(1) rotate(45deg); }
+
+.order__text {
+  flex: 1;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  word-break: break-word;
+}
+
+.order__kill {
+  padding: 7px 13px;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.25s, color 0.25s, border-color 0.25s;
+}
+
+.order:hover .order__kill { opacity: 1; }
+
+.order__kill:hover {
+  color: #e8604a;
+  border-color: rgba(232, 96, 74, 0.5);
+}
+
+/* ------------------------------------------------------------
+   Animacoes
+   ------------------------------------------------------------ */
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes drift {
+  0% { transform: translate3d(-4%, 2%, 0) scale(1.05); }
+  100% { transform: translate3d(5%, -3%, 0) scale(1.18); }
+}
+
+@keyframes seamPulse {
+  0%, 100% { opacity: 0.38; }
+  50% { opacity: 0.62; }
+}
+
+@keyframes flicker {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(-3px, 2px); }
+  66% { transform: translate(2px, -3px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes equalize {
+  0%, 100% { height: 3px; }
+  50% { height: 12px; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------
+   Responsivo e acessibilidade
+   ------------------------------------------------------------ */
+
+@media (max-width: 620px) {
+  .banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .banner__right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .decree { flex-direction: column; }
+  .decree__submit { width: 100%; }
+  .order__kill { opacity: 1; }
+  .tally:first-of-type { margin-left: 0; }
+
+  /* Em tela estreita as duas artes viram metades verticais de cima e baixo */
+  .campaign__half { width: 100%; height: 55%; }
+  .campaign__half--left { top: 0; bottom: auto; }
+  .campaign__half--right { top: auto; bottom: 0; }
+  .campaign__half--left,
+  .campaign__half--right {
+    -webkit-mask-image: none;
+    mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%);
+  }
+  .campaign__half--right {
+    mask-image: linear-gradient(0deg, #000 0%, #000 60%, transparent 100%);
+  }
+  .campaign__seam { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
