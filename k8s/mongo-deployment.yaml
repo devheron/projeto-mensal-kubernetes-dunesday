@@ -8,6 +8,11 @@ metadata:
     app.kubernetes.io/part-of: dunesday
 spec:
   replicas: 1
+  # O PVC e ReadWriteOnce e o mongod tranca /data/db enquanto roda.
+  # Com RollingUpdate o Pod novo sobe antes do antigo morrer, encontra o
+  # lock preso e sai na hora. Recreate derruba o antigo primeiro.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: todo-mongo
@@ -45,17 +50,16 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data/db
+          # Checagem de porta em vez de mongosh: o cliente e Node e sobe em
+          # segundos, o que torna a probe lenta e sujeita a estourar tempo.
+          # A conexao autenticada de verdade e verificada pelo /health do
+          # backend, que e quem precisa falar com o banco.
           readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - mongosh --quiet -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')"
-            initialDelaySeconds: 15
-            periodSeconds: 15
-            # mongosh e Node e leva alguns segundos so para iniciar
-            # O padrao de 1s nunca da tempo e a probe falha para sempre
-            timeoutSeconds: 10
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
             failureThreshold: 6
           resources:
             requests:
