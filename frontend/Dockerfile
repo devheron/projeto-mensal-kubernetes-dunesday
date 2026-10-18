@@ -13,10 +13,9 @@ RUN npm install
 # Copiando todo o conteúdo da pasta do projeto para o container
 COPY . .
 
-# Expondo a porta que o frontend vai usar (3000) no environment
-#ARG REACT_APP_API_URL
-#ENV REACT_APP_API_URL=$REACT_APP_API_URL
-ENV REACT_APP_API_URL=https://api.todo.projetomensal.com.br
+# Nenhum endereco de API e definido aqui.
+# O App.js usa o caminho relativo /api e o nginx deste container resolve o
+# destino, o que mantem a mesma imagem valida em qualquer ambiente.
 
 # Construindo a aplicação para produção
 RUN npm run build

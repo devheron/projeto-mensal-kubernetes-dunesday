@@ -6,7 +6,10 @@ import HouseSigil from './HouseSigil';
 import WarAudio from './warAudio';
 import './App.css';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Caminho relativo: o nginx do proprio container repassa /api para
+// todo-backend:8080, entao o navegador nunca chama a API direto
+// O .env.development sobrescreve isso durante o npm start
+const API = process.env.REACT_APP_API_URL || '/api';
 
 // Tempo que cada faccao domina a interface antes da virada
 const FACTION_INTERVAL = 18000;
