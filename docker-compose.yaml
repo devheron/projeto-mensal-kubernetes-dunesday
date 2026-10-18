@@ -1,40 +1,99 @@
-version: '3.8'
+# Stack completo do DUNESDAY: banco, API e interface.
+# Sobe com um comando, sem configuracao previa:
+#
+#   docker compose up --build
+#
+# Os valores entre ${} tem padrao embutido e so precisam de .env se voce
+# quiser trocar alguma coisa. O modelo esta em .env.example.
+#
+# Os aliases de rede (todo-mongo, todo-backend) repetem os nomes dos Services
+# do Kubernetes. Com isso a connection string e a configuracao do nginx sao as
+# mesmas aqui e no cluster.
+
+name: dunesday
 
 services:
-  frontend:
+  mongo:
     build:
-      context: ./frontend  # Diretório do frontend
+      context: ./banco-de-dados
+    restart: unless-stopped
     ports:
-      - "80:80"  # Expõe a porta 80 do contêiner para a porta 80 do host
+      - "${MONGO_PORT:-27018}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-dunesday}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-dunesday_local}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-todo-app}
+    volumes:
+      - mongo-data:/data/db
+    # O backend so inicia depois que este teste passar
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - -u
+        - ${MONGO_USER:-dunesday}
+        - -p
+        - ${MONGO_PASSWORD:-dunesday_local}
+        - --authenticationDatabase
+        - admin
+        - --eval
+        - db.adminCommand('ping')
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
-      - todo-net
-    depends_on:
-      - backend  # Garante que o backend esteja rodando antes de subir o frontend
+      todo-net:
+        aliases:
+          - todo-mongo
 
   backend:
     build:
-      context: ./backend  # Diretório do backend
+      context: ./backend
+    restart: unless-stopped
+    # index.js le process.env.PORT e escuta na 8080 dentro do container
     ports:
-      - "5000:5000"  # Expõe a porta 5000 do contêiner para a porta 5000 do host
-    networks:
-      - todo-net
-    depends_on:
-      - mongo  # Garante que o MongoDB esteja rodando antes de iniciar o backend
-
-  mongo:
-    build:
-      context: ./banco-de-dados  # Diretório do backend
-    container_name: mongo-todo
-    ports:
-      - "27017:27017"
-    networks:
-      - todo-net
+      - "${BACKEND_PORT:-5001}:8080"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=rootpassword
-      - MONGO_INITDB_DATABASE=todo-app
+      PORT: 8080
+      MONGO_URI: mongodb://${MONGO_USER:-dunesday}:${MONGO_PASSWORD:-dunesday_local}@todo-mongo:27017/${MONGO_DB:-todo-app}?authSource=admin
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # Usa a mesma rota /health que as probes do Kubernetes consultam
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - require('http').get('http://127.0.0.1:8080/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      todo-net:
+        aliases:
+          - todo-backend
 
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    # nginx escuta na 8080 dentro do container
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - todo-net
 
 networks:
   todo-net:
     driver: bridge
+
+volumes:
+  mongo-data:

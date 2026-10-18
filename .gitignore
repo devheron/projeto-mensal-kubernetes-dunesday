@@ -2,7 +2,10 @@ data
 .env
 .env.*
 !.env.example
+!.env.development
 node_modules
+.env.example.*
+.env.example
 
 # Build
 build/
@@ -12,9 +15,10 @@ coverage/
 # Secrets do Kubernetes: só o modelo .example.yaml vai para o repositório
 k8s/*secret*.yaml
 !k8s/*secret*.example.yaml
+k8s/README.md
 
 # Arte de campanha: a pasta é versionada, os arquivos de imagem não
-frontend/public/campanha/*
+frontend/public/campanha/
 !frontend/public/campanha/README.md
 
 # Sistema

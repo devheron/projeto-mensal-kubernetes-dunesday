@@ -7,6 +7,10 @@ const bodyParser = require('body-parser');
 const app = express();
 const { v4: uuidv4 } = require('uuid');
 
+// O Kubernetes injeta HOSTNAME com o nome do Pod
+// Identifica qual replica respondeu cada requisicao
+const POD = process.env.HOSTNAME || 'local';
+
 // Middleware de logging estruturado
 app.use((req, res, next) => {
   const requestId = uuidv4();
@@ -18,6 +22,7 @@ app.use((req, res, next) => {
     const log = {
       timestamp: new Date().toISOString(),
       service: 'todo-backend',
+      pod: POD,
       environment: 'production',
       level: res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
       event: 'http_request',
@@ -59,6 +64,18 @@ const TodoSchema = new mongoose.Schema({
 });
 
 const Todo = mongoose.model('Todo', TodoSchema);
+
+// Consultado pelas probes do Kubernetes
+// Devolve 503 enquanto o banco nao conecta, o que tira o Pod do balanceamento
+app.get('/health', (req, res) => {
+  const dbUp = mongoose.connection.readyState === 1;
+  res.status(dbUp ? 200 : 503).json({
+    status: dbUp ? 'ok' : 'degraded',
+    pod: POD,
+    db: dbUp ? 'up' : 'down',
+    uptime_s: Math.round(process.uptime())
+  });
+});
 
 // Rota para obter todas as tarefas (GET)
 app.get('/todos', async (req, res) => {
