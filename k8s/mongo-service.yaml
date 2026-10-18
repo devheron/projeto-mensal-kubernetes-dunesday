@@ -1,0 +1,16 @@
+# ClusterIP: alcancavel apenas de dentro do cluster.
+# O nome todo-mongo vira registro DNS e e o host usado na MONGO_URI.
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-mongo
+  labels:
+    app: todo-mongo
+spec:
+  type: ClusterIP
+  selector:
+    app: todo-mongo
+  ports:
+    - port: 27017
+      targetPort: 27017
+      name: mongo

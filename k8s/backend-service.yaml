@@ -1,0 +1,16 @@
+# ClusterIP. Distribui as conexoes entre as replicas prontas.
+# O nome todo-backend e o host usado no proxy_pass do nginx.
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-backend
+  labels:
+    app: todo-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: todo-backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http

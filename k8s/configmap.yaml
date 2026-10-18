@@ -1,0 +1,15 @@
+# Valores nao sensiveis da aplicacao.
+# Credenciais ficam no Secret, nunca aqui.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+  labels:
+    app.kubernetes.io/part-of: dunesday
+data:
+  # O navegador fala com o nginx do frontend, nunca direto com a API,
+  # entao a origem permitida e a propria pagina servida pelo cluster
+  CORS_ORIGIN: "*"
+  NODE_ENV: "production"
+  PORT: "8080"
+  MONGO_DB_NAME: "todo-app"

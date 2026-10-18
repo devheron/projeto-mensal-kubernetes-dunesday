@@ -1,0 +1,70 @@
+# Banco de dados. Uma replica apenas: o PVC e ReadWriteOnce.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-mongo
+  labels:
+    app: todo-mongo
+    app.kubernetes.io/part-of: dunesday
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-mongo
+  template:
+    metadata:
+      labels:
+        app: todo-mongo
+    spec:
+      containers:
+        - name: mongo
+          image: todo-mongo:latest
+          # A imagem foi construida no daemon do Minikube e nao existe em
+          # registry nenhum. Sem isto o Pod cai em ImagePullBackOff.
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 27017
+              name: mongo
+          env:
+            # Credenciais vem do Secret, nunca deste arquivo
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: MONGO_USER
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: MONGO_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: todo-config
+                  key: MONGO_DB_NAME
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - mongosh --quiet -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')"
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            # mongosh e Node e leva alguns segundos so para iniciar
+            # O padrao de 1s nunca da tempo e a probe falha para sempre
+            timeoutSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "768Mi"
+              cpu: "500m"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mongo-data

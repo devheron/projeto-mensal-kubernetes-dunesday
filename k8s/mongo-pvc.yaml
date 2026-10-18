@@ -1,0 +1,13 @@
+# Volume do banco. Sem ele os dados somem a cada recriacao do Pod.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-data
+  labels:
+    app.kubernetes.io/part-of: dunesday
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
