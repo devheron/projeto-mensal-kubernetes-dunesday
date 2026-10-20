@@ -8,7 +8,7 @@ export default function DunesdayMark() {
   return (
     <svg
       className="mark"
-      viewBox="0 0 760 78"
+      viewBox="-160 0 790 78"
       role="img"
       aria-label="Agenda de Anotações"
       preserveAspectRatio="xMidYMid meet"
@@ -56,7 +56,7 @@ export default function DunesdayMark() {
           paintOrder="stroke fill"
         >
           <tspan fill="url(#sandGrad)">AGENDA DE</tspan>
-          <tspan fill="url(#doomGrad)">ANOTAÇÕES</tspan>
+          <tspan fill="url(#doomGrad)"> ANOTAÇÕES</tspan>
         </text>
       </g>
 
