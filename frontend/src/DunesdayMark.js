@@ -8,9 +8,9 @@ export default function DunesdayMark() {
   return (
     <svg
       className="mark"
-      viewBox="0 0 460 78"
+      viewBox="0 0 760 78"
       role="img"
-      aria-label="Dunesday"
+      aria-label="Agenda de Anotações"
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
