@@ -55,8 +55,8 @@ export default function DunesdayMark() {
           strokeWidth="5"
           paintOrder="stroke fill"
         >
-          <tspan fill="url(#sandGrad)">DUNE</tspan>
-          <tspan fill="url(#doomGrad)">SDAY</tspan>
+          <tspan fill="url(#sandGrad)">AGENDA DE</tspan>
+          <tspan fill="url(#doomGrad)">ANOTAÇÕES</tspan>
         </text>
       </g>
 
