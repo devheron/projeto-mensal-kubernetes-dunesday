@@ -16,6 +16,7 @@ services:
   mongo:
     build:
       context: ./banco-de-dados
+    image: todo-mongo:latest
     restart: unless-stopped
     ports:
       - "${MONGO_PORT:-27018}:27017"
@@ -51,6 +52,7 @@ services:
   backend:
     build:
       context: ./backend
+    image: todo-backend:latest
     restart: unless-stopped
     # index.js le process.env.PORT e escuta na 8080 dentro do container
     ports:
@@ -81,6 +83,7 @@ services:
   frontend:
     build:
       context: ./frontend
+    image: todo-frontend:latest
     restart: unless-stopped
     # nginx escuta na 8080 dentro do container
     ports:
